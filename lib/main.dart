@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,106 +14,291 @@ class LevelUpApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Level Up',
+      title: 'Level Up Pro',
       theme: ThemeData(
         fontFamily: 'Roboto',
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Premium Slate Dark
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         primaryColor: const Color(0xFF3B82F6),
       ),
-      home: const HabitDashboard(),
+      home: const MainNavigationScreen(),
     );
   }
 }
 
-class HabitDashboard extends StatefulWidget {
-  const HabitDashboard({super.key});
+class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({super.key});
 
   @override
-  State<HabitDashboard> createState() => _HabitDashboardState();
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _HabitDashboardState extends State<HabitDashboard> {
-  int totalPoints = 0;
-  List<String> completedHabitsToday = [];
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentTab = 0;
+  int totalXP = 0;
   bool isLoading = true;
 
-  // 📌 Habit Data with Points & Icons (No Numbers)
-  final List<Map<String, dynamic>> habitsList = [
-    {'id': 'h1', 'title': 'Wake up at 6:00 AM', 'points': 50, 'icon': Icons.wb_sunny_rounded, 'color': Colors.amber},
-    {'id': 'h2', 'title': 'Drink 2 Glasses of Water', 'points': 10, 'icon': Icons.water_drop_rounded, 'color': Colors.lightBlueAccent},
-    {'id': 'h3', 'title': 'Exercise & Workout', 'points': 40, 'icon': Icons.fitness_center_rounded, 'color': Colors.redAccent},
-    {'id': 'h4', 'title': 'Learn English (30 mins)', 'points': 30, 'icon': Icons.language_rounded, 'color': Colors.indigoAccent},
-    {'id': 'h5', 'title': 'Read a Book (30 mins)', 'points': 30, 'icon': Icons.menu_book_rounded, 'color': Colors.tealAccent},
-    {'id': 'h6', 'title': 'Practice Silence & Speak Less', 'points': 20, 'icon': Icons.self_improvement_rounded, 'color': Colors.purpleAccent},
+  List<Map<String, dynamic>> habits = [];
+  List<Map<String, dynamic>> todos = [];
+  List<String> completedHabitsToday = [];
+
+  final List<Map<String, dynamic>> defaultHabits = [
+    {'id': 'h1', 'title': 'Wake up at 6:00 AM', 'points': 50},
+    {'id': 'h2', 'title': 'Drink 2 Glasses of Water', 'points': 10},
+    {'id': 'h3', 'title': 'Exercise & Workout', 'points': 40},
+    {'id': 'h4', 'title': 'Learn English (30 mins)', 'points': 30},
+    {'id': 'h5', 'title': 'Read a Book (30 mins)', 'points': 30},
+    {'id': 'h6', 'title': 'Practice Silence & Speak Less', 'points': 20},
   ];
 
   @override
   void initState() {
     super.initState();
-    _loadProgress();
+    _loadAllData();
   }
 
-  // 💾 Load Data & Check for New Day
-  Future<void> _loadProgress() async {
+  Future<void> _loadAllData() async {
     final prefs = await SharedPreferences.getInstance();
-    String today = DateTime.now().toString().substring(0, 10); // "YYYY-MM-DD"
+    String today = DateTime.now().toString().substring(0, 10);
     String lastDate = prefs.getString('last_date') ?? '';
 
+    String? habitsJson = prefs.getString('saved_habits');
+    String? todosJson = prefs.getString('saved_todos');
+
     setState(() {
-      totalPoints = prefs.getInt('total_points') ?? 0;
-      
-      // Agar naya din hai, toh tasks un-tick ho jayenge (lekin points bachenge)
+      totalXP = prefs.getInt('total_xp') ?? 0;
+
+      if (habitsJson != null) {
+        habits = List<Map<String, dynamic>>.from(jsonDecode(habitsJson));
+      } else {
+        habits = List.from(defaultHabits);
+      }
+
+      if (todosJson != null) {
+        todos = List<Map<String, dynamic>>.from(jsonDecode(todosJson));
+      } else {
+        todos = [];
+      }
+
       if (today != lastDate) {
         completedHabitsToday = [];
         prefs.setString('last_date', today);
-        prefs.setStringList('completed_today', []);
+        prefs.setStringList('completed_habits_today', []);
       } else {
-        completedHabitsToday = prefs.getStringList('completed_today') ?? [];
+        completedHabitsToday = prefs.getStringList('completed_habits_today') ?? [];
       }
+
       isLoading = false;
     });
   }
 
-  // ✅ Mark Habit as Done and Give Reward
-  Future<void> _completeHabit(String id, int pointsEarned) async {
-    if (completedHabitsToday.contains(id)) return; // Pehle se done hai toh kuch mat karo
-
+  Future<void> _saveAllData() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('total_xp', totalXP);
+    await prefs.setString('saved_habits', jsonEncode(habits));
+    await prefs.setString('saved_todos', jsonEncode(todos));
+    await prefs.setStringList('completed_habits_today', completedHabitsToday);
+  }
+
+  int get currentLevel => (totalXP ~/ 100) + 1;
+  double get levelProgress => (totalXP % 100) / 100;
+
+  void _toggleHabit(String id, int points) {
     setState(() {
-      completedHabitsToday.add(id);
-      totalPoints += pointsEarned;
+      if (completedHabitsToday.contains(id)) {
+        completedHabitsToday.remove(id);
+        totalXP -= points;
+        if (totalXP < 0) totalXP = 0;
+      } else {
+        completedHabitsToday.add(id);
+        totalXP += points;
+      }
     });
+    _saveAllData();
+  }
 
-    await prefs.setStringList('completed_today', completedHabitsToday);
-    await prefs.setInt('total_points', totalPoints);
+  void _toggleTodo(int index) {
+    setState(() {
+      bool isDone = todos[index]['isDone'] ?? false;
+      int points = todos[index]['points'] ?? 20;
 
-    // 🎊 Show Reward Snackbar
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
+      todos[index]['isDone'] = !isDone;
+      if (!isDone) {
+        totalXP += points;
+      } else {
+        totalXP -= points;
+        if (totalXP < 0) totalXP = 0;
+      }
+    });
+    _saveAllData();
+  }
+
+  void _showAddDialog(bool isHabit) {
+    final titleController = TextEditingController();
+    final pointsController = TextEditingController(text: "20");
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(isHabit ? "Add New Habit" : "Add New To-Do", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                'Awesome! +$pointsEarned XP Gained',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+              TextField(
+                controller: titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: isHabit ? "e.g. Meditate" : "e.g. Finish Work",
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: const Color(0xFF0F172A),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: pointsController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "XP Reward",
+                  labelStyle: const TextStyle(color: Colors.blueAccent),
+                  filled: true,
+                  fillColor: const Color(0xFF0F172A),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF10B981), // Neon Green
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  int pts = int.tryParse(pointsController.text) ?? 20;
+                  setState(() {
+                    if (isHabit) {
+                      habits.add({'id': DateTime.now().millisecondsSinceEpoch.toString(), 'title': titleController.text.trim(), 'points': pts});
+                    } else {
+                      todos.add({'id': DateTime.now().millisecondsSinceEpoch.toString(), 'title': titleController.text.trim(), 'points': pts, 'isDone': false});
+                    }
+                  });
+                  _saveAllData();
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Add", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  // 🎮 Calculate Level (Har 100 points pe ek level)
-  int get currentLevel => (totalPoints ~/ 100) + 1;
-  double get levelProgress => (totalPoints % 100) / 100;
+  void _showOptionsDialog(int index, bool isHabit) {
+    final String currentTitle = isHabit ? habits[index]['title'] : todos[index]['title'];
+    final int currentPts = isHabit ? habits[index]['points'] : todos[index]['points'];
+
+    final titleController = TextEditingController(text: currentTitle);
+    final pointsController = TextEditingController(text: currentPts.toString());
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(isHabit ? "Edit / Delete Habit" : "Edit / Delete To-Do", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "Title",
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: const Color(0xFF0F172A),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: pointsController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "XP Reward",
+                  labelStyle: const TextStyle(color: Colors.blueAccent),
+                  filled: true,
+                  fillColor: const Color(0xFF0F172A),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, padding: const EdgeInsets.symmetric(vertical: 12)),
+                      icon: const Icon(Icons.delete, color: Colors.white),
+                      label: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        setState(() {
+                          if (isHabit) {
+                            habits.removeAt(index);
+                          } else {
+                            todos.removeAt(index);
+                          }
+                        });
+                        _saveAllData();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), padding: const EdgeInsets.symmetric(vertical: 12)),
+                      icon: const Icon(Icons.save, color: Colors.white),
+                      label: const Text("Save Changes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        if (titleController.text.isNotEmpty) {
+                          setState(() {
+                            int pts = int.tryParse(pointsController.text) ?? currentPts;
+                            if (isHabit) {
+                              habits[index]['title'] = titleController.text.trim();
+                              habits[index]['points'] = pts;
+                            } else {
+                              todos[index]['title'] = titleController.text.trim();
+                              todos[index]['points'] = pts;
+                            }
+                          });
+                          _saveAllData();
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,13 +307,11 @@ class _HabitDashboardState extends State<HabitDashboard> {
     return Scaffold(
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🌟 Top Player Profile & Level Board
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               decoration: const BoxDecoration(
-                color: Color(0xFF1E293B), // Premium Slate card
+                color: Color(0xFF1E293B),
                 borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
               ),
               child: Column(
@@ -139,15 +323,15 @@ class _HabitDashboardState extends State<HabitDashboard> {
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("My Journey", style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          Text("Daily Quest", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
+                          Text("My Dashboard", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 2),
+                          Text("LevelUp Quest", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
                         ],
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withOpacity(0.2), // Blue tint
+                          color: const Color(0xFF3B82F6).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: const Color(0xFF3B82F6), width: 1.5),
                         ),
@@ -158,13 +342,11 @@ class _HabitDashboardState extends State<HabitDashboard> {
                       )
                     ],
                   ),
-                  const SizedBox(height: 25),
-                  
-                  // Level Progress Bar
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("Total XP: $totalPoints", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text("Total XP: $totalXP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       Text("Next Level: ${(currentLevel * 100)} XP", style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
@@ -175,112 +357,167 @@ class _HabitDashboardState extends State<HabitDashboard> {
                       value: levelProgress,
                       minHeight: 10,
                       backgroundColor: const Color(0xFF0F172A),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)), // Neon Green Bar
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
                     ),
                   )
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-            
-            // 📜 Daily Tasks List
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                "Today's Habits",
-                style: TextStyle(color: Colors.blueGrey[200], fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: habitsList.length,
-                itemBuilder: (context, index) {
-                  final habit = habitsList[index];
-                  bool isDone = completedHabitsToday.contains(habit['id']);
-
-                  return GestureDetector(
-                    onTap: () => _completeHabit(habit['id'], habit['points']),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDone ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isDone ? const Color(0xFF10B981) : Colors.transparent, // Green border if done
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          if (!isDone)
-                            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // 🎨 Icon with colorful background
-                          Container(
-                            width: 50, height: 50,
-                            decoration: BoxDecoration(
-                              color: isDone ? Colors.grey.withOpacity(0.1) : habit['color'].withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Icon(
-                              isDone ? Icons.check_circle_rounded : habit['icon'], 
-                              color: isDone ? const Color(0xFF10B981) : habit['color'], 
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          
-                          // 📋 Habit Name
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  habit['title'],
-                                  style: TextStyle(
-                                    color: isDone ? Colors.grey : Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: isDone ? TextDecoration.lineThrough : null, // Katt gaya (strikethrough)
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "+${habit['points']} XP Reward",
-                                  style: TextStyle(color: isDone ? Colors.grey[600] : const Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // ✅ Claim Button / Status
-                          isDone 
-                            ? const Text("DONE", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w900, letterSpacing: 1))
-                            : Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text("CLAIM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
-                              )
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            )
+              child: _currentTab == 0 ? _buildHabitsList() : _buildTodoList(),
+            ),
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddDialog(_currentTab == 0),
+        backgroundColor: const Color(0xFF3B82F6),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(_currentTab == 0 ? "Add Habit" : "Add To-Do", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentTab,
+        onTap: (index) => setState(() => _currentTab = index),
+        backgroundColor: const Color(0xFF1E293B),
+        selectedItemColor: const Color(0xFF10B981),
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.bolt_rounded), label: "Habits"),
+          BottomNavigationBarItem(icon: Icon(Icons.check_circle_outline_rounded), label: "To-Do"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHabitsList() {
+    if (habits.isEmpty) {
+      return const Center(child: Text("No Habits added. Tap 'Add Habit' to create one!", style: TextStyle(color: Colors.grey)));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: habits.length,
+      itemBuilder: (context, index) {
+        final habit = habits[index];
+        final String id = habit['id'];
+        final bool isDone = completedHabitsToday.contains(id);
+
+        return GestureDetector(
+          onTap: () => _toggleHabit(id, habit['points']),
+          onLongPress: () => _showOptionsDialog(index, true),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDone ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDone ? const Color(0xFF10B981) : Colors.transparent, width: 2),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                  color: isDone ? const Color(0xFF10B981) : Colors.grey,
+                  size: 28,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        habit['title'],
+                        style: TextStyle(
+                          color: isDone ? Colors.grey : Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text("+${habit['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Text(
+                  isDone ? "DONE" : "CLAIM",
+                  style: TextStyle(
+                    color: isDone ? const Color(0xFF10B981) : const Color(0xFF60A5FA),
+                    fontWeight: FontWeight.w900,
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTodoList() {
+    if (todos.isEmpty) {
+      return const Center(child: Text("No To-Do items. Tap 'Add To-Do' to create one!", style: TextStyle(color: Colors.grey)));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: todos.length,
+      itemBuilder: (context, index) {
+        final todo = todos[index];
+        final bool isDone = todo['isDone'] ?? false;
+
+        return GestureDetector(
+          onTap: () => _toggleTodo(index),
+          onLongPress: () => _showOptionsDialog(index, false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDone ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDone ? const Color(0xFF10B981) : Colors.transparent, width: 2),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isDone ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                  color: isDone ? const Color(0xFF10B981) : Colors.grey,
+                  size: 28,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        todo['title'],
+                        style: TextStyle(
+                          color: isDone ? Colors.grey : Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text("+${todo['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Text(
+                  isDone ? "COMPLETED" : "DO IT",
+                  style: TextStyle(
+                    color: isDone ? const Color(0xFF10B981) : const Color(0xFF60A5FA),
+                    fontWeight: FontWeight.w900,
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
