@@ -15,15 +15,9 @@ jobs:
         with:
           channel: 'stable'
           
-      - name: Clean & Fix Android SDK
-        run: |
-          rm -rf android
-          flutter create . --platforms=android --org=com.rehan.habit
-          # Yeh line Android SDK mismatch error (Exit Code 1) ko fix karegi
-          sed -i 's/flutter.minSdkVersion/24/g' android/app/build.gradle
-          
-      - run: flutter pub get
-      
+      - name: Get Dependencies
+        run: flutter pub get
+        
       - name: Build APK
         run: flutter build apk --debug
         
