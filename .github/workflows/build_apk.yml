@@ -1,37 +1,16 @@
-name: Build Android APK
-on:
-  push:
-    branches: [ "main" ]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+name: habit_tracker
+description: "Gamified Habit and To-Do Tracker"
+publish_to: 'none'
+version: 1.0.0+1
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+environment:
+  sdk: '>=3.0.0 <4.0.0'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.2
 
-      - name: Clean & Generate Android Code
-        run: |
-          rm -rf android
-          flutter create . --platforms=android --org=com.rehan.habit
-
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Build Debug APK
-        run: flutter build apk --debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: LevelUp-Glass-Edition
-          path: 'build/app/outputs/**/*.apk'
+flutter:
+  uses-material-design: true
