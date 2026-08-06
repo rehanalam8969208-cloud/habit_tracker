@@ -11,8 +11,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           
+      # Yahan hum Flutter ka ekdum stable aur purana version use kar rahe hain jisme koi error nahi aata
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.19.0'
           channel: 'stable'
           
       - name: Create Fresh Android Scaffold
