@@ -1,7 +1,18 @@
+class HabitData {
+  static final List<Map<String, dynamic>> defaultHabits = [
+    {'id': 'h1', 'title': 'Wake up at 6:00 AM', 'points': 50},
+    {'id': 'h2', 'title': 'Drink 2 Glasses of Water', 'points': 10},
+    {'id': 'h3', 'title': 'Exercise & Workout', 'points': 40},
+    {'id': 'h4', 'title': 'Learn English (30 mins)', 'points': 30},
+    {'id': 'h5', 'title': 'Read a Book (30 mins)', 'points': 30},
+    {'id': 'h6', 'title': 'Practice Silence & Speak Less', 'points': 20},
+  ];
+}
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:ui';
+import 'habit_data.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,11 +27,7 @@ class LevelUpApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Level Up Pro',
-      theme: ThemeData(
-        fontFamily: 'Roboto',
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF3B82F6),
-      ),
+      theme: ThemeData(fontFamily: 'Roboto', brightness: Brightness.dark, primaryColor: const Color(0xFF3B82F6)),
       home: const MainNavigationScreen(),
     );
   }
@@ -30,7 +37,6 @@ class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry margin;
   final EdgeInsetsGeometry padding;
-
   const GlassCard({super.key, required this.child, required this.margin, required this.padding});
 
   @override
@@ -67,19 +73,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentTab = 0;
   int totalXP = 0;
   bool isLoading = true;
-
   List<Map<String, dynamic>> habits = [];
   List<Map<String, dynamic>> todos = [];
   List<String> completedHabitsToday = [];
-
-  final List<Map<String, dynamic>> defaultHabits = [
-    {'id': 'h1', 'title': 'Wake up at 6:00 AM', 'points': 50},
-    {'id': 'h2', 'title': 'Drink 2 Glasses of Water', 'points': 10},
-    {'id': 'h3', 'title': 'Exercise & Workout', 'points': 40},
-    {'id': 'h4', 'title': 'Learn English (30 mins)', 'points': 30},
-    {'id': 'h5', 'title': 'Read a Book (30 mins)', 'points': 30},
-    {'id': 'h6', 'title': 'Practice Silence & Speak Less', 'points': 20},
-  ];
 
   @override
   void initState() {
@@ -97,12 +93,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     setState(() {
       totalXP = prefs.getInt('total_xp') ?? 0;
-
-      if (habitsJson != null) habits = List<Map<String, dynamic>>.from(jsonDecode(habitsJson));
-      else habits = List.from(defaultHabits);
-
-      if (todosJson != null) todos = List<Map<String, dynamic>>.from(jsonDecode(todosJson));
-      else todos = [];
+      habits = habitsJson != null ? List<Map<String, dynamic>>.from(jsonDecode(habitsJson)) : List.from(HabitData.defaultHabits);
+      todos = todosJson != null ? List<Map<String, dynamic>>.from(jsonDecode(todosJson)) : [];
 
       if (today != lastDate) {
         completedHabitsToday = [];
@@ -143,7 +135,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     setState(() {
       bool isDone = todos[index]['isDone'] ?? false;
       int points = todos[index]['points'] ?? 20;
-
       todos[index]['isDone'] = !isDone;
       if (!isDone) totalXP += points;
       else totalXP = (totalXP - points).clamp(0, 999999);
@@ -169,26 +160,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               TextField(
                 controller: titleController,
                 style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: isHabit ? "e.g. Meditate" : "e.g. Finish Work",
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.black.withOpacity(0.3),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
+                decoration: InputDecoration(hintText: "Enter title", filled: true, fillColor: Colors.black.withOpacity(0.3), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: pointsController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: "XP Reward",
-                  labelStyle: const TextStyle(color: Colors.blueAccent),
-                  filled: true,
-                  fillColor: Colors.black.withOpacity(0.3),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
+                decoration: InputDecoration(labelText: "XP Reward", filled: true, fillColor: Colors.black.withOpacity(0.3), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
               ),
             ],
           ),
@@ -216,10 +195,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _showOptionsDialog(int index, bool isHabit) {
-    final String currentTitle = isHabit ? habits[index]['title'] : todos[index]['title'];
-    final int currentPts = isHabit ? habits[index]['points'] : todos[index]['points'];
-    final titleController = TextEditingController(text: currentTitle);
-    final pointsController = TextEditingController(text: currentPts.toString());
+    final titleController = TextEditingController(text: isHabit ? habits[index]['title'] : todos[index]['title']);
+    final pointsController = TextEditingController(text: (isHabit ? habits[index]['points'] : todos[index]['points']).toString());
 
     showModalBottomSheet(
       context: context,
@@ -232,43 +209,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(isHabit ? "Edit / Delete Habit" : "Edit / Delete To-Do", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+              Text(isHabit ? "Edit Habit" : "Edit To-Do", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
               const SizedBox(height: 20),
-              TextField(
-                controller: titleController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: "Title",
-                  filled: true,
-                  fillColor: Colors.black.withOpacity(0.3),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
+              TextField(controller: titleController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(labelText: "Title", filled: true, fillColor: Colors.black.withOpacity(0.3), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
               const SizedBox(height: 12),
-              TextField(
-                controller: pointsController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: "XP Reward",
-                  filled: true,
-                  fillColor: Colors.black.withOpacity(0.3),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
+              TextField(controller: pointsController, keyboardType: TextInputType.number, style: const TextStyle(color: Colors.white), decoration: InputDecoration(labelText: "XP", filled: true, fillColor: Colors.black.withOpacity(0.3), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent.withOpacity(0.8), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent.withOpacity(0.8), padding: const EdgeInsets.symmetric(vertical: 14)),
                       icon: const Icon(Icons.delete, color: Colors.white),
-                      label: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      label: const Text("Delete", style: TextStyle(color: Colors.white)),
                       onPressed: () {
-                        setState(() {
-                          if (isHabit) habits.removeAt(index);
-                          else todos.removeAt(index);
-                        });
+                        setState(() { if (isHabit) habits.removeAt(index); else todos.removeAt(index); });
                         _saveAllData();
                         Navigator.pop(context);
                       },
@@ -277,30 +232,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981).withOpacity(0.8), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981).withOpacity(0.8), padding: const EdgeInsets.symmetric(vertical: 14)),
                       icon: const Icon(Icons.save, color: Colors.white),
-                      label: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      label: const Text("Save", style: TextStyle(color: Colors.white)),
                       onPressed: () {
-                        if (titleController.text.isNotEmpty) {
-                          setState(() {
-                            int pts = int.tryParse(pointsController.text) ?? currentPts;
-                            if (isHabit) {
-                              habits[index]['title'] = titleController.text.trim();
-                              habits[index]['points'] = pts;
-                            } else {
-                              todos[index]['title'] = titleController.text.trim();
-                              todos[index]['points'] = pts;
-                            }
-                          });
-                          _saveAllData();
-                          Navigator.pop(context);
-                        }
+                        setState(() {
+                          int pts = int.tryParse(pointsController.text) ?? 20;
+                          if (isHabit) { habits[index]['title'] = titleController.text; habits[index]['points'] = pts; }
+                          else { todos[index]['title'] = titleController.text; todos[index]['points'] = pts; }
+                        });
+                        _saveAllData();
+                        Navigator.pop(context);
                       },
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
             ],
           ),
         );
@@ -321,7 +268,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: Column(
               children: [
                 GlassCard(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,71 +276,43 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("My Dashboard", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
-                              SizedBox(height: 2),
-                              Text("LevelUp Quest", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
-                            ],
-                          ),
+                          const Text("LevelUp Quest", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6).withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFF3B82F6), width: 1.5),
-                            ),
-                            child: Text(
-                              "Level $currentLevel",
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
-                            ),
+                            decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.3), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF3B82F6))),
+                            child: Text("Level $currentLevel", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
                           )
                         ],
                       ),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Total XP: $totalXP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text("Next: ${(currentLevel * 100)} XP", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                          Text("Total XP: $totalXP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text("Next: ${(currentLevel * 100)} XP", style: const TextStyle(color: Colors.grey)),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          value: levelProgress,
-                          minHeight: 12,
-                          backgroundColor: Colors.black.withOpacity(0.4),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-                        ),
+                        child: LinearProgressIndicator(value: levelProgress, minHeight: 10, backgroundColor: Colors.black45, valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981))),
                       )
                     ],
                   ),
                 ),
-                Expanded(
-                  child: _currentTab == 0 ? _buildHabitsList() : _buildTodoList(),
-                ),
+                Expanded(child: _currentTab == 0 ? _buildList(habits, true) : _buildList(todos, false)),
               ],
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: const Color(0xFF10B981),
-        elevation: 8,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 32),
-      ),
+      floatingActionButton: FloatingActionButton(onPressed: _showAddDialog, backgroundColor: const Color(0xFF10B981), shape: const CircleBorder(), child: const Icon(Icons.add, color: Colors.white, size: 32)),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: BottomAppBar(
             color: Colors.white.withOpacity(0.08),
-            elevation: 0,
             shape: const CircularNotchedRectangle(),
             notchMargin: 10,
             child: SizedBox(
@@ -401,29 +320,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  MaterialButton(
-                    minWidth: 80,
-                    onPressed: () => setState(() => _currentTab = 0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.bolt_rounded, color: _currentTab == 0 ? const Color(0xFF10B981) : Colors.grey, size: 28),
-                        Text("Habits", style: TextStyle(color: _currentTab == 0 ? const Color(0xFF10B981) : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
+                  MaterialButton(minWidth: 80, onPressed: () => setState(() => _currentTab = 0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.bolt_rounded, color: _currentTab == 0 ? const Color(0xFF10B981) : Colors.grey), Text("Habits", style: TextStyle(color: _currentTab == 0 ? const Color(0xFF10B981) : Colors.grey))])),
                   const SizedBox(width: 40),
-                  MaterialButton(
-                    minWidth: 80,
-                    onPressed: () => setState(() => _currentTab = 1),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline_rounded, color: _currentTab == 1 ? const Color(0xFF3B82F6) : Colors.grey, size: 26),
-                        Text("To-Do", style: TextStyle(color: _currentTab == 1 ? const Color(0xFF3B82F6) : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
+                  MaterialButton(minWidth: 80, onPressed: () => setState(() => _currentTab = tab), onPressed: () => setState(() => _currentTab = 1), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.check_circle_outline_rounded, color: _currentTab == 1 ? const Color(0xFF3B82F6) : Colors.grey), Text("To-Do", style: TextStyle(color: _currentTab == 1 ? const Color(0xFF3B82F6) : Colors.grey))])),
                 ],
               ),
             ),
@@ -433,18 +332,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildHabitsList() {
-    if (habits.isEmpty) return const Center(child: Text("No Habits added.", style: TextStyle(color: Colors.grey)));
+  Widget _buildList(List<Map<String, dynamic>> items, bool isHabit) {
+    if (items.isEmpty) return Center(child: Text(isHabit ? "No Habits added." : "No To-Do items.", style: const TextStyle(color: Colors.grey)));
     return ListView.builder(
       padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
-      itemCount: habits.length,
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        final habit = habits[index];
-        final bool isDone = completedHabitsToday.contains(habit['id']);
+        final item = items[index];
+        final bool isDone = isHabit ? completedHabitsToday.contains(item['id']) : (item['isDone'] ?? false);
 
         return GestureDetector(
-          onTap: () => _toggleHabit(habit['id'], habit['points']),
-          onLongPress: () => _showOptionsDialog(index, true),
+          onTap: () => isHabit ? _toggleHabit(item['id'], item['points']) : _toggleTodo(index),
+          onLongPress: () => _showOptionsDialog(index, isHabit),
           child: GlassCard(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(18),
@@ -456,47 +355,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(habit['title'], style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontSize: 16, fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null)),
+                      Text(item['title'], style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontSize: 16, fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null)),
                       const SizedBox(height: 4),
-                      Text("+${habit['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTodoList() {
-    if (todos.isEmpty) return const Center(child: Text("No To-Do items.", style: TextStyle(color: Colors.grey)));
-    return ListView.builder(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
-      itemCount: todos.length,
-      itemBuilder: (context, index) {
-        final todo = todos[index];
-        final bool isDone = todo['isDone'] ?? false;
-
-        return GestureDetector(
-          onTap: () => _toggleTodo(index),
-          onLongPress: () => _
-            _showOptionsDialog(index, false),
-          child: GlassCard(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                Icon(isDone ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, color: isDone ? const Color(0xFF3B82F6) : Colors.white70, size: 30),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(todo['title'], style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontSize: 16, fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null)),
-                      const SizedBox(height: 4),
-                      Text("+${todo['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+                      Text("+${item['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
                     ],
                   ),
                 ),
