@@ -19,6 +19,11 @@ jobs:
           flutter-version: '3.19.0'
           channel: 'stable'
 
+      - name: Clean & Generate Fresh Android Project
+        run: |
+          rm -rf android
+          flutter create . --platforms=android --org=com.rehan.habit
+
       - name: Get Dependencies
         run: flutter pub get
 
