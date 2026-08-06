@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:ui'; // For Glassmorphism Blur
+import 'dart:ui';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +26,6 @@ class LevelUpApp extends StatelessWidget {
   }
 }
 
-// 📌 Reusable Glass Card Widget
 class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry margin;
@@ -45,7 +44,7 @@ class GlassCard extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05), // Transparent White Glass
+              color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.5),
             ),
@@ -224,7 +223,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // Background transparent for glass effect
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
         return GlassCard(
@@ -314,31 +313,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (isLoading) return const Scaffold(backgroundColor: Color(0xFF0F172A), body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
-      extendBody: true, // Allows background to flow under BottomAppBar
+      extendBody: true,
       body: Stack(
         children: [
-          // 🌌 Animated Abstract Background
           Container(color: const Color(0xFF0F172A)),
-          Positioned(
-            top: -50, left: -50,
-            child: Container(
-              width: 250, height: 250,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF3B82F6).withOpacity(0.4)),
-            ).childBlur(),
-          ),
-          Positioned(
-            bottom: 50, right: -50,
-            child: Container(
-              width: 250, height: 250,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF10B981).withOpacity(0.3)),
-            ).childBlur(),
-          ),
-          
-          // 📱 Main UI Content
           SafeArea(
             child: Column(
               children: [
-                // Glass Dashboard
                 GlassCard(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   padding: const EdgeInsets.all(24),
@@ -391,8 +372,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ],
                   ),
                 ),
-                
-                // List View
                 Expanded(
                   child: _currentTab == 0 ? _buildHabitsList() : _buildTodoList(),
                 ),
@@ -401,8 +380,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      
-      // 🎯 Center Docked Floating Action Button (The '+')
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
         backgroundColor: const Color(0xFF10B981),
@@ -411,8 +388,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      
-      // 📱 Glass Bottom App Bar
       bottomNavigationBar: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
@@ -437,7 +412,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 40), // Space for FAB
+                  const SizedBox(width: 40),
                   MaterialButton(
                     minWidth: 80,
                     onPressed: () => setState(() => _currentTab = 1),
@@ -481,3 +456,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(habit['title'], style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontSize: 16, fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null)),
+                      const SizedBox(height: 4),
+                      Text("+${habit['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
