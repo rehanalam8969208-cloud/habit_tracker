@@ -369,3 +369,40 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
+  Widget _buildTodoList() {
+    if (todos.isEmpty) return const Center(child: Text("No To-Do items.", style: TextStyle(color: Colors.grey)));
+    return ListView.builder(
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
+      itemCount: todos.length,
+      itemBuilder: (context, index) {
+        final todo = todos[index];
+        final bool isDone = todo['isDone'] ?? false;
+
+        return GestureDetector(
+          onTap: () => _toggleTodo(index),
+          onLongPress: () => _showOptionsDialog(index, false),
+          child: GlassCard(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Icon(isDone ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, color: isDone ? const Color(0xFF3B82F6) : Colors.white70, size: 30),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(todo['title'], style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontSize: 16, fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null)),
+                      const SizedBox(height: 4),
+                      Text("+${todo['points']} XP Reward", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
