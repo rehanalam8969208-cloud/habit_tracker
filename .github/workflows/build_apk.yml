@@ -1,33 +1,32 @@
-name: Build
+name: Build APK
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-java@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-          
-      # Yahan hum Flutter ka ekdum stable aur purana version use kar rahe hain jisme koi error nahi aata
-      - uses: subosito/flutter-action@v2
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-          
-      - name: Create Fresh Android Scaffold
-        run: |
-          flutter create . --platforms=android --org=com.rehan.habit
-          
+
       - name: Get Dependencies
         run: flutter pub get
-        
-      - name: Build APK
+
+      - name: Build Debug APK
         run: flutter build apk --debug
-        
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: LevelUp-App
+          name: LevelUp-Glass-App
           path: build/app/outputs/flutter-apk/app-debug.apk
