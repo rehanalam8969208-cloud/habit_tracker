@@ -15,6 +15,10 @@ jobs:
         with:
           channel: 'stable'
           
+      - name: Create Fresh Android Scaffold
+        run: |
+          flutter create . --platforms=android --org=com.rehan.habit
+          
       - name: Get Dependencies
         run: flutter pub get
         
